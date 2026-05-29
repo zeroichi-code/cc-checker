@@ -21,13 +21,10 @@ export default function MetricCard({
 }: Props) {
   return (
     <div className="rounded-2xl bg-white dark:bg-[#1c1c1e] p-4 shadow-sm dark:shadow-none">
-      <div className="flex items-start justify-between">
+      <div>
         <h3 className="text-[15px] font-semibold text-black dark:text-white">
           {title}
         </h3>
-        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#e5e5ea] dark:bg-[#2c2c2e] text-[#6c6c70] dark:text-[#8e8e93] text-[11px]">
-          ›
-        </span>
       </div>
       <p className="text-xs text-[#8e8e93] mt-1">{subLabel}</p>
       <div className="flex items-baseline gap-1 mt-0.5">

@@ -22,16 +22,11 @@ export default function WeeklyView({ week, color = "#ff9f0a" }: Props) {
 
   return (
     <div className="rounded-2xl bg-white dark:bg-[#1c1c1e] p-4 shadow-sm dark:shadow-none">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="text-[15px] font-semibold text-black dark:text-white">過去1週間</h3>
-          <p className="text-xs text-[#6c6c70] dark:text-[#8e8e93] mt-0.5">
-            合計 {fmtTokens(total)} tk
-          </p>
-        </div>
-        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#e5e5ea] dark:bg-[#2c2c2e] text-[#6c6c70] dark:text-[#8e8e93] text-[11px]">
-          ›
-        </span>
+      <div className="mb-3">
+        <h3 className="text-[15px] font-semibold text-black dark:text-white">過去1週間</h3>
+        <p className="text-xs text-[#6c6c70] dark:text-[#8e8e93] mt-0.5">
+          合計 {fmtTokens(total)} tk
+        </p>
       </div>
 
       <div className="grid grid-cols-7 gap-2">
