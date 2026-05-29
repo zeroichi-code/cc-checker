@@ -27,7 +27,7 @@ export default function Header({ lastUpdated, isLoading, onRefresh }: Props) {
       <button
         onClick={onRefresh}
         disabled={isLoading}
-        className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 shadow-lg disabled:opacity-50 transition"
+        className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 hover:from-violet-500 hover:to-fuchsia-500 border border-white/10 shadow-lg shadow-fuchsia-900/30 disabled:opacity-50 transition"
       >
         <span
           className={`inline-block ${isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}

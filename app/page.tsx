@@ -98,9 +98,9 @@ export default function Page() {
   }, [blocks.data]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayEntry = daily.data?.daily?.find((d) => d.date === todayStr);
+  const todayEntry = daily.data?.daily?.find((d) => d.period === todayStr);
   const sortedDaily = [...(daily.data?.daily ?? [])].sort((a, b) =>
-    a.date.localeCompare(b.date)
+    (a.period ?? "").localeCompare(b.period ?? "")
   );
   const yesterdayEntry = sortedDaily[sortedDaily.length - 2] ?? null;
 
@@ -155,7 +155,7 @@ export default function Page() {
       </section>
 
       <section>
-        <SessionTable sessions={session.data?.sessions ?? []} />
+        <SessionTable sessions={session.data?.session ?? []} />
       </section>
 
       <footer className="mt-12 text-center text-xs text-slate-500">

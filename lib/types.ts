@@ -38,7 +38,7 @@ export type BlocksResponse = {
 };
 
 export type DailyEntry = {
-  date: string;
+  period: string; // 日付 "YYYY-MM-DD"
   inputTokens: number;
   outputTokens: number;
   cacheCreationTokens?: number;
@@ -60,19 +60,19 @@ export type DailyResponse = {
 };
 
 export type SessionEntry = {
-  sessionId: string;
+  period: string; // セッションID (UUID)
   inputTokens: number;
   outputTokens: number;
   cacheCreationTokens?: number;
   cacheReadTokens?: number;
   totalTokens: number;
   totalCost: number;
-  lastActivity?: string;
+  metadata?: { lastActivity?: string };
   modelsUsed?: string[];
 };
 
 export type SessionResponse = {
-  sessions: SessionEntry[];
+  session: SessionEntry[];
   totals?: {
     inputTokens: number;
     outputTokens: number;

@@ -1,25 +1,71 @@
 "use client";
 
+type Theme = {
+  ring: string; // border + glow color
+  from: string;
+  to: string;
+  text: string;
+  chipBg: string;
+};
+
+const THEMES: Record<string, Theme> = {
+  violet: {
+    ring: "rgba(139,92,246,.45)",
+    from: "from-violet-500/20",
+    to: "to-fuchsia-500/5",
+    text: "text-violet-300",
+    chipBg: "bg-violet-500/20",
+  },
+  cyan: {
+    ring: "rgba(34,211,238,.45)",
+    from: "from-cyan-500/20",
+    to: "to-sky-500/5",
+    text: "text-cyan-300",
+    chipBg: "bg-cyan-500/20",
+  },
+  amber: {
+    ring: "rgba(251,146,60,.5)",
+    from: "from-orange-500/20",
+    to: "to-amber-500/5",
+    text: "text-orange-300",
+    chipBg: "bg-orange-500/20",
+  },
+  pink: {
+    ring: "rgba(236,72,153,.5)",
+    from: "from-pink-500/20",
+    to: "to-rose-500/5",
+    text: "text-pink-300",
+    chipBg: "bg-pink-500/20",
+  },
+};
+
 type Card = {
   icon: string;
   label: string;
   value: string;
+  unit?: string;
   sub?: string;
-  accent?: string;
+  theme: keyof typeof THEMES;
 };
 
-function Cell({ icon, label, value, sub, accent }: Card) {
+function Cell({ icon, label, value, unit, sub, theme }: Card) {
+  const t = THEMES[theme];
   return (
-    <div className="rounded-2xl bg-slate-800/60 backdrop-blur border border-slate-700/60 p-5 shadow-lg hover:bg-slate-800/80 transition">
-      <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-        <span className="text-lg">{icon}</span>
-        <span>{label}</span>
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${t.from} ${t.to} backdrop-blur p-5 shadow-lg transition hover:scale-[1.02] hover:border-white/20`}
+      style={{ boxShadow: `0 0 24px ${t.ring}` }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span
+          className={`flex h-8 w-8 items-center justify-center rounded-xl text-base ${t.chipBg}`}
+        >
+          {icon}
+        </span>
+        <span className="text-xs text-slate-300">{label}</span>
       </div>
-      <div
-        className="text-2xl md:text-3xl font-bold tabular-nums"
-        style={accent ? { color: accent } : undefined}
-      >
-        {value}
+      <div className={`flex flex-wrap items-baseline gap-x-1 leading-tight ${t.text}`}>
+        <span className="text-2xl font-bold tabular-nums">{value}</span>
+        {unit && <span className="text-xs font-medium text-slate-400">{unit}</span>}
       </div>
       {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
     </div>
@@ -113,24 +159,30 @@ function renderGrid(p: {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Cell
+        theme="violet"
         icon="⏱"
         label="リセットまで"
         value={p.resetIn}
         sub={`終了 ${p.resetAt}`}
       />
       <Cell
+        theme="cyan"
         icon="📈"
         label="現在の使用量"
-        value={`${p.usedTokens.toLocaleString()} tk`}
+        value={p.usedTokens.toLocaleString()}
+        unit="tk"
         sub={`入 ${p.inputTokens.toLocaleString()} / 出 ${p.outputTokens.toLocaleString()}`}
       />
       <Cell
+        theme="amber"
         icon="🔥"
         label="Burn rate"
-        value={`${burn.toFixed(0)} tk/min`}
+        value={Math.round(burn).toLocaleString()}
+        unit="tk/min"
         sub={burnSub}
       />
       <Cell
+        theme="pink"
         icon="💴"
         label="本日のコスト"
         value={`$${p.todayCostUSD.toFixed(2)}`}
