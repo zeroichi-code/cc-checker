@@ -1,165 +1,209 @@
 "use client";
 
 import useSWR from "swr";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Header from "@/components/Header";
 import CircularGauge from "@/components/CircularGauge";
-import StatusGrid, { formatHHMM, formatResetIn } from "@/components/StatusGrid";
-import DailyChart from "@/components/DailyChart";
-import SessionTable from "@/components/SessionTable";
-import type {
-  BlocksResponse,
-  DailyResponse,
-  SessionResponse,
-} from "@/lib/types";
+import MetricCard from "@/components/MetricCard";
+import WeeklyView, { type WeekDay } from "@/components/WeeklyView";
+import type { BlocksResponse, DailyResponse } from "@/lib/types";
 
 const JPY_RATE = 155;
 
 const fetcher = async (url: string) => {
   const r = await fetch(url);
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(t || `HTTP ${r.status}`);
-  }
+  if (!r.ok) throw new Error((await r.text()) || `HTTP ${r.status}`);
   return r.json();
 };
 
-export default function Page() {
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+const fmtTokens = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n.toLocaleString();
 
+// CircularGauge と同じ閾値の代表色
+function remainColor(remaining: number) {
+  if (remaining >= 70) return "#30d158";
+  if (remaining >= 30) return "#ff9f0a";
+  return "#ff375f";
+}
+
+function formatRemain(min: number | null) {
+  if (min === null || !isFinite(min) || min <= 0) return "—";
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return h > 0 ? `${h}時間${m}分` : `${m}分`;
+}
+
+export default function Page() {
   const blocks = useSWR<BlocksResponse>("/api/blocks", fetcher, {
     refreshInterval: 30_000,
-    onSuccess: () => setLastUpdated(new Date()),
   });
   const daily = useSWR<DailyResponse>("/api/daily", fetcher, {
     refreshInterval: 60_000,
   });
-  const session = useSWR<SessionResponse>("/api/session", fetcher, {
-    refreshInterval: 60_000,
-  });
-
-  const isLoading = blocks.isLoading || daily.isLoading || session.isLoading;
-  const error = blocks.error || daily.error || session.error;
+  const isLoading = blocks.isLoading || daily.isLoading;
+  const error = blocks.error || daily.error;
 
   const refresh = () => {
     blocks.mutate();
     daily.mutate();
-    session.mutate();
   };
 
   const view = useMemo(() => {
     const active = blocks.data?.blocks?.find((b) => b.isActive && !b.isGap);
-
     if (!active) {
       return {
         remainingPercent: 100,
         remainingMinutes: null as number | null,
         used: 0,
         limit: 0,
-        resetIn: "—",
         resetAt: "—",
-        inputTokens: 0,
-        outputTokens: 0,
         burnRate: null as number | null,
-        minutesToLimit: null as number | null,
       };
     }
-
     const end = new Date(active.endTime);
-    const now = new Date();
-    const remainingMs = end.getTime() - now.getTime();
-    const remainingMinutes = Math.max(0, remainingMs / 60_000);
-
+    const remainingMinutes = Math.max(0, (end.getTime() - Date.now()) / 60_000);
     const limit =
       active.tokenLimitStatus?.limit ??
       active.projection?.totalTokens ??
       Math.max(active.totalTokens * 1.5, 35_000);
-
     const used = active.totalTokens;
-    const usedPct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
-    const remainingPercent = Math.max(0, 100 - usedPct);
-
-    const burn = active.burnRate?.tokensPerMinute ?? null;
-    const minutesToLimit =
-      burn && burn > 0 && limit > used ? (limit - used) / burn : null;
-
+    const remainingPercent = limit > 0 ? Math.max(0, 100 - (used / limit) * 100) : 0;
+    const pad = (n: number) => String(n).padStart(2, "0");
     return {
       remainingPercent,
       remainingMinutes,
       used,
       limit: Math.round(limit),
-      resetIn: formatResetIn(remainingMinutes),
-      resetAt: formatHHMM(end),
-      inputTokens: active.tokenCounts?.inputTokens ?? 0,
-      outputTokens: active.tokenCounts?.outputTokens ?? 0,
-      burnRate: burn,
-      minutesToLimit,
+      resetAt: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+      burnRate: active.burnRate?.tokensPerMinute ?? null,
     };
   }, [blocks.data]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayEntry = daily.data?.daily?.find((d) => d.period === todayStr);
   const sortedDaily = [...(daily.data?.daily ?? [])].sort((a, b) =>
     (a.period ?? "").localeCompare(b.period ?? "")
   );
-  const yesterdayEntry = sortedDaily[sortedDaily.length - 2] ?? null;
+  const last14 = sortedDaily.slice(-14);
+  const todayEntry = sortedDaily.find((d) => d.period === todayStr);
 
+  const todayTokens = todayEntry?.totalTokens ?? 0;
   const todayCostUSD = todayEntry?.totalCost ?? 0;
   const todayCostJPY = Math.round(todayCostUSD * JPY_RATE);
-  const yesterdayCostUSD = yesterdayEntry?.totalCost ?? null;
+
+  const tokenBars = {
+    values: last14.map((d) => d.totalTokens),
+    labels: last14.map((d) => (d.period ?? "").slice(5)),
+  };
+  const costBars = {
+    values: last14.map((d) => d.totalCost),
+    labels: last14.map((d) => (d.period ?? "").slice(5)),
+  };
+
+  // 過去7日（カレンダー基準、データ無い日は0）
+  const dayJp = ["日", "月", "火", "水", "木", "金", "土"];
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const week: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const e = daily.data?.daily?.find((x) => x.period === key);
+    return {
+      day: dayJp[d.getDay()],
+      date: `${d.getMonth() + 1}/${d.getDate()}`,
+      tokens: e?.totalTokens ?? 0,
+      cost: e?.totalCost ?? 0,
+      isToday: i === 6,
+    };
+  });
 
   return (
-    <main className="max-w-6xl mx-auto px-4 md:px-8 py-8">
-      <Header
-        lastUpdated={lastUpdated}
-        isLoading={isLoading}
-        onRefresh={refresh}
-      />
+    <main className="max-w-2xl mx-auto px-4 pt-12 pb-16">
+      <Header isLoading={isLoading} onRefresh={refresh} />
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-950/40 border border-rose-700/60 text-sm text-rose-200">
-          <div className="font-semibold mb-1">エラー: ccusage の実行に失敗しました</div>
-          <div className="text-xs opacity-80 break-words">
+        <div className="mb-4 rounded-2xl bg-[#1c1c1e] p-4 text-sm text-[#ff453a]">
+          <div className="font-semibold mb-1">ccusage の実行に失敗しました</div>
+          <div className="text-xs text-[#8e8e93] break-words">
             {error instanceof Error ? error.message : String(error)}
           </div>
-          <div className="text-xs opacity-70 mt-2">
-            初回起動時は `npx ccusage@latest` のダウンロードに数十秒かかることがあります。「更新」ボタンで再試行してください。
+          <div className="text-xs text-[#8e8e93] mt-2">
+            初回は npx ccusage のダウンロードに時間がかかります。右上の更新で再試行してください。
           </div>
         </div>
       )}
 
-      <section className="grid lg:grid-cols-[auto_1fr] gap-6 mb-6">
-        <div className="flex justify-center">
-          <CircularGauge
-            remainingPercent={view.remainingPercent}
-            remainingMinutes={view.remainingMinutes}
-            used={view.used}
-            limit={view.limit}
+      <div className="flex flex-col gap-4">
+        {/* アクティビティリング */}
+        <div className="rounded-2xl bg-[#1c1c1e] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[15px] font-semibold text-white">残量リング</h3>
+            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2c2c2e] text-[#8e8e93] text-[11px]">
+              →
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            <CircularGauge remainingPercent={view.remainingPercent} size={140} />
+            <div>
+              <div className="text-[#8e8e93] text-sm">残量</div>
+              <div
+                className="flex items-baseline gap-1"
+                style={{ color: remainColor(view.remainingPercent) }}
+              >
+                <span className="text-4xl font-bold tabular-nums">
+                  {view.remainingPercent.toFixed(0)}
+                </span>
+                <span className="text-xl font-semibold">%</span>
+              </div>
+              <div className="text-sm text-white mt-2">
+                推定残り {formatRemain(view.remainingMinutes)}
+              </div>
+              <div className="text-xs text-[#8e8e93] mt-0.5">
+                リセット {view.resetAt}
+              </div>
+              <div className="text-xs text-[#8e8e93] mt-1">
+                使用 {fmtTokens(view.used)} / {fmtTokens(view.limit)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* メトリクス 2列 */}
+        <div className="grid grid-cols-2 gap-4">
+          <MetricCard
+            title="使用量"
+            value={fmtTokens(todayTokens)}
+            unit="tk"
+            color="#bf5af2"
+            bars={tokenBars}
+          />
+          <MetricCard
+            title="コスト"
+            value={`$${todayCostUSD.toFixed(2)}`}
+            unit={`¥${todayCostJPY.toLocaleString()}`}
+            color="#64d2ff"
+            bars={costBars}
+          />
+          <MetricCard
+            title="Burn rate"
+            subLabel="現在"
+            value={Math.round(view.burnRate ?? 0).toLocaleString()}
+            unit="tk/min"
+            color="#ff9f0a"
+          />
+          <MetricCard
+            title="推定残り時間"
+            subLabel="このブロック"
+            value={formatRemain(view.remainingMinutes)}
+            color="#30d158"
           />
         </div>
-        <div className="flex flex-col gap-4">
-          <StatusGrid
-            resetIn={view.resetIn}
-            resetAt={view.resetAt}
-            usedTokens={view.used}
-            inputTokens={view.inputTokens}
-            outputTokens={view.outputTokens}
-            burnRate={view.burnRate}
-            minutesToLimit={view.minutesToLimit}
-            todayCostUSD={todayCostUSD}
-            todayCostJPY={todayCostJPY}
-            yesterdayCostUSD={yesterdayCostUSD}
-          />
-          <DailyChart daily={daily.data?.daily ?? []} />
-        </div>
-      </section>
 
-      <section>
-        <SessionTable sessions={session.data?.session ?? []} />
-      </section>
+        {/* 過去1週間 */}
+        <WeeklyView week={week} />
+      </div>
 
-      <footer className="mt-12 text-center text-xs text-slate-500">
-        Powered by <a href="https://github.com/ryoppippi/ccusage" className="underline hover:text-slate-300">ccusage</a> ・ 30秒ごとに自動更新
+      <footer className="mt-8 text-center text-xs text-[#636366]">
+        Powered by ccusage ・ 30秒ごとに自動更新
       </footer>
     </main>
   );
