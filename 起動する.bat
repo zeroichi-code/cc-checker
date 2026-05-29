@@ -27,3 +27,4 @@ echo.
 echo 開発サーバを起動中... 終了するにはこのウィンドウを閉じてください。
 echo.
 call npm run dev
+pause
