@@ -162,7 +162,7 @@ export default function Page() {
         {/* アクティビティリング */}
         <div className="rounded-2xl bg-white dark:bg-[#1c1c1e] p-5 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[15px] font-semibold text-black dark:text-white">残量リング</h3>
+            <h3 className="text-[16px] font-semibold text-black dark:text-white">残量リング</h3>
             <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#e5e5ea] dark:bg-[#2c2c2e] text-[#6c6c70] dark:text-[#8e8e93] text-[11px]">
               →
             </span>
