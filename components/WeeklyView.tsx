@@ -16,7 +16,7 @@ type Props = {
 const fmtTokens = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n > 0 ? `${Math.round(n / 1000)}k` : "0";
 
-export default function WeeklyView({ week, color = "#bf5af2" }: Props) {
+export default function WeeklyView({ week, color = "#ff9f0a" }: Props) {
   const max = Math.max(1, ...week.map((d) => d.tokens));
   const total = week.reduce((s, d) => s + d.tokens, 0);
 

@@ -1,11 +1,13 @@
 "use client";
 
 import useSWR from "swr";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import CircularGauge from "@/components/CircularGauge";
 import MetricCard from "@/components/MetricCard";
 import WeeklyView, { type WeekDay } from "@/components/WeeklyView";
+import PlanToggle from "@/components/PlanToggle";
+import { PLAN_FACTOR, PLAN_LABEL, PLAN_STORAGE_KEY, isPlan, type Plan } from "@/lib/plan";
 import type { BlocksResponse, DailyResponse } from "@/lib/types";
 
 const JPY_RATE = 155;
@@ -43,13 +45,30 @@ export default function Page() {
   const isLoading = blocks.isLoading || daily.isLoading;
   const error = blocks.error || daily.error;
 
+  // プラン選択（localStorage 永続化）
+  const [plan, setPlan] = useState<Plan>("max5");
+  useEffect(() => {
+    const saved = localStorage.getItem(PLAN_STORAGE_KEY);
+    if (isPlan(saved)) setPlan(saved);
+  }, []);
+  const changePlan = (p: Plan) => {
+    setPlan(p);
+    localStorage.setItem(PLAN_STORAGE_KEY, p);
+  };
+
   const refresh = () => {
     blocks.mutate();
     daily.mutate();
   };
 
   const view = useMemo(() => {
-    const active = blocks.data?.blocks?.find((b) => b.isActive && !b.isGap);
+    const list = blocks.data?.blocks ?? [];
+    const active = list.find((b) => b.isActive && !b.isGap);
+    // 過去ブロックの最大消費量を上限の baseline とみなす（実績ベース自動推定）
+    const baseline = Math.max(
+      0,
+      ...list.filter((b) => !b.isGap).map((b) => b.totalTokens)
+    );
     if (!active) {
       return {
         remainingPercent: 100,
@@ -62,11 +81,14 @@ export default function Page() {
     }
     const end = new Date(active.endTime);
     const remainingMinutes = Math.max(0, (end.getTime() - Date.now()) / 60_000);
-    const limit =
-      active.tokenLimitStatus?.limit ??
-      active.projection?.totalTokens ??
-      Math.max(active.totalTokens * 1.5, 35_000);
     const used = active.totalTokens;
+    // プラン係数を掛けた推定上限。実測やprojectionを下回らないよう max を取る。
+    const limit = Math.max(
+      baseline * PLAN_FACTOR[plan],
+      active.projection?.totalTokens ?? 0,
+      used,
+      35_000
+    );
     const remainingPercent = limit > 0 ? Math.max(0, 100 - (used / limit) * 100) : 0;
     const pad = (n: number) => String(n).padStart(2, "0");
     return {
@@ -77,7 +99,7 @@ export default function Page() {
       resetAt: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
       burnRate: active.burnRate?.tokensPerMinute ?? null,
     };
-  }, [blocks.data]);
+  }, [blocks.data, plan]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const sortedDaily = [...(daily.data?.daily ?? [])].sort((a, b) =>
@@ -120,6 +142,10 @@ export default function Page() {
     <main className="max-w-2xl mx-auto px-4 pt-12 pb-16">
       <Header isLoading={isLoading} onRefresh={refresh} />
 
+      <div className="flex justify-end mb-4 -mt-1">
+        <PlanToggle plan={plan} onChange={changePlan} />
+      </div>
+
       {error && (
         <div className="mb-4 rounded-2xl bg-[#1c1c1e] p-4 text-sm text-[#ff453a]">
           <div className="font-semibold mb-1">ccusage の実行に失敗しました</div>
@@ -141,18 +167,20 @@ export default function Page() {
               →
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            <CircularGauge remainingPercent={view.remainingPercent} size={140} />
-            <div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="pl-8">
+              <CircularGauge remainingPercent={view.remainingPercent} size={160} />
+            </div>
+            <div className="flex-1 flex flex-col items-center pl-4">
               <div className="text-[#8e8e93] text-sm">残量</div>
               <div
                 className="flex items-baseline gap-1"
                 style={{ color: remainColor(view.remainingPercent) }}
               >
-                <span className="text-4xl font-bold tabular-nums">
+                <span className="text-5xl font-bold tabular-nums">
                   {view.remainingPercent.toFixed(0)}
                 </span>
-                <span className="text-xl font-semibold">%</span>
+                <span className="text-2xl font-semibold">%</span>
               </div>
               <div className="text-sm text-white mt-2">
                 推定残り {formatRemain(view.remainingMinutes)}
@@ -162,6 +190,7 @@ export default function Page() {
               </div>
               <div className="text-xs text-[#8e8e93] mt-1">
                 使用 {fmtTokens(view.used)} / {fmtTokens(view.limit)}
+                <span className="text-[#636366]"> ({PLAN_LABEL[plan]}基準)</span>
               </div>
             </div>
           </div>

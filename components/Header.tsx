@@ -1,5 +1,6 @@
 "use client";
 
+
 type Props = {
   isLoading: boolean;
   onRefresh: () => void;
@@ -15,8 +16,10 @@ export default function Header({ isLoading, onRefresh }: Props) {
   return (
     <header className="flex items-start justify-between px-1 mb-4">
       <div>
-        <h1 className="text-[34px] leading-tight font-bold tracking-tight text-white">
-          概要
+        <h1 className="text-[34px] leading-tight font-bold tracking-tight text-white flex items-center gap-3">
+          Token Usage
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/mascot.png" alt="Clawde" width={96} height={96} style={{ imageRendering: "pixelated" }} />
         </h1>
         <p className="text-sm text-[#8e8e93] mt-0.5">{todayLabel()}</p>
       </div>

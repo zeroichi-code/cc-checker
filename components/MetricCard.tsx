@@ -22,7 +22,7 @@ export default function MetricCard({
   return (
     <div className="rounded-2xl bg-[#1c1c1e] p-4">
       <div className="flex items-start justify-between">
-        <h3 className="text-[15px] font-semibold" style={{ color }}>
+        <h3 className="text-[15px] font-semibold text-white">
           {title}
         </h3>
         <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2c2c2e] text-[#8e8e93] text-[11px]">
