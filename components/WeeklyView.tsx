@@ -1,8 +1,8 @@
 "use client";
 
 export type WeekDay = {
-  day: string; // 曜日 (月,火…)
-  date: string; // M/D
+  day: string;
+  date: string;
   tokens: number;
   cost: number;
   isToday: boolean;
@@ -21,15 +21,15 @@ export default function WeeklyView({ week, color = "#ff9f0a" }: Props) {
   const total = week.reduce((s, d) => s + d.tokens, 0);
 
   return (
-    <div className="rounded-2xl bg-[#1c1c1e] p-4">
+    <div className="rounded-2xl bg-white dark:bg-[#1c1c1e] p-4 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="text-[15px] font-semibold text-white">過去1週間</h3>
-          <p className="text-xs text-[#8e8e93] mt-0.5">
+          <h3 className="text-[15px] font-semibold text-black dark:text-white">過去1週間</h3>
+          <p className="text-xs text-[#6c6c70] dark:text-[#8e8e93] mt-0.5">
             合計 {fmtTokens(total)} tk
           </p>
         </div>
-        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2c2c2e] text-[#8e8e93] text-[11px]">
+        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#e5e5ea] dark:bg-[#2c2c2e] text-[#6c6c70] dark:text-[#8e8e93] text-[11px]">
           ›
         </span>
       </div>
@@ -39,7 +39,7 @@ export default function WeeklyView({ week, color = "#ff9f0a" }: Props) {
           const h = Math.max(4, (d.tokens / max) * 100);
           return (
             <div key={i} className="flex flex-col items-center">
-              <span className="text-[10px] text-[#8e8e93] tabular-nums mb-1 h-3">
+              <span className="text-[10px] text-[#6c6c70] dark:text-[#8e8e93] tabular-nums mb-1 h-3">
                 {d.tokens > 0 ? fmtTokens(d.tokens) : ""}
               </span>
               <div className="flex items-end h-20 w-full justify-center">
@@ -54,12 +54,12 @@ export default function WeeklyView({ week, color = "#ff9f0a" }: Props) {
               </div>
               <span
                 className={`text-[11px] mt-1 ${
-                  d.isToday ? "text-white font-semibold" : "text-[#8e8e93]"
+                  d.isToday ? "text-black dark:text-white font-semibold" : "text-[#6c6c70] dark:text-[#8e8e93]"
                 }`}
               >
                 {d.day}
               </span>
-              <span className="text-[9px] text-[#636366] tabular-nums">
+              <span className="text-[9px] text-[#8e8e93] dark:text-[#636366] tabular-nums">
                 {d.date}
               </span>
             </div>

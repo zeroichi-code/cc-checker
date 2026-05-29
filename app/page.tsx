@@ -147,12 +147,12 @@ export default function Page() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-2xl bg-[#1c1c1e] p-4 text-sm text-[#ff453a]">
+        <div className="mb-4 rounded-2xl bg-white dark:bg-[#1c1c1e] p-4 text-sm text-[#ff453a] shadow-sm dark:shadow-none">
           <div className="font-semibold mb-1">ccusage の実行に失敗しました</div>
-          <div className="text-xs text-[#8e8e93] break-words">
+          <div className="text-xs text-[#6c6c70] dark:text-[#8e8e93] break-words">
             {error instanceof Error ? error.message : String(error)}
           </div>
-          <div className="text-xs text-[#8e8e93] mt-2">
+          <div className="text-xs text-[#6c6c70] dark:text-[#8e8e93] mt-2">
             初回は npx ccusage のダウンロードに時間がかかります。右上の更新で再試行してください。
           </div>
         </div>
@@ -160,10 +160,10 @@ export default function Page() {
 
       <div className="flex flex-col gap-4">
         {/* アクティビティリング */}
-        <div className="rounded-2xl bg-[#1c1c1e] p-5">
+        <div className="rounded-2xl bg-white dark:bg-[#1c1c1e] p-5 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[15px] font-semibold text-white">残量リング</h3>
-            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#2c2c2e] text-[#8e8e93] text-[11px]">
+            <h3 className="text-[15px] font-semibold text-black dark:text-white">残量リング</h3>
+            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#e5e5ea] dark:bg-[#2c2c2e] text-[#6c6c70] dark:text-[#8e8e93] text-[11px]">
               →
             </span>
           </div>
@@ -172,7 +172,7 @@ export default function Page() {
               <CircularGauge remainingPercent={view.remainingPercent} size={160} />
             </div>
             <div className="flex-1 flex flex-col items-center pl-4">
-              <div className="text-[#8e8e93] text-sm">残量</div>
+              <div className="text-[#6c6c70] dark:text-[#8e8e93] text-sm">残量</div>
               <div
                 className="flex items-baseline gap-1"
                 style={{ color: remainColor(view.remainingPercent) }}
@@ -182,15 +182,15 @@ export default function Page() {
                 </span>
                 <span className="text-2xl font-semibold">%</span>
               </div>
-              <div className="text-sm text-white mt-2">
+              <div className="text-sm text-black dark:text-white mt-2">
                 推定残り {formatRemain(view.remainingMinutes)}
               </div>
-              <div className="text-xs text-[#8e8e93] mt-0.5">
+              <div className="text-xs text-[#6c6c70] dark:text-[#8e8e93] mt-0.5">
                 リセット {view.resetAt}
               </div>
-              <div className="text-xs text-[#8e8e93] mt-1">
+              <div className="text-xs text-[#6c6c70] dark:text-[#8e8e93] mt-1">
                 使用 {fmtTokens(view.used)} / {fmtTokens(view.limit)}
-                <span className="text-[#636366]"> ({PLAN_LABEL[plan]}基準)</span>
+                <span className="text-[#8e8e93] dark:text-[#636366]"> ({PLAN_LABEL[plan]}基準)</span>
               </div>
             </div>
           </div>
@@ -231,7 +231,7 @@ export default function Page() {
         <WeeklyView week={week} />
       </div>
 
-      <footer className="mt-8 text-center text-xs text-[#636366]">
+      <footer className="mt-8 text-center text-xs text-[#8e8e93] dark:text-[#636366]">
         Powered by ccusage ・ 30秒ごとに自動更新
       </footer>
     </main>

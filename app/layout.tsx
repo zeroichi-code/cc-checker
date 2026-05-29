@@ -12,8 +12,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
-      <body className="min-h-screen bg-black">{children}</body>
+    <html lang="ja" className="dark" suppressHydrationWarning>
+      <head>
+        {/* テーマを localStorage から即時反映（FOUC防止） */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            var t = localStorage.getItem('cc-theme') || 'dark';
+            document.documentElement.className = t;
+          })();
+        `}} />
+      </head>
+      <body className="min-h-screen">{children}</body>
     </html>
   );
 }
