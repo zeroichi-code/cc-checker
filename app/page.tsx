@@ -213,7 +213,7 @@ export default function Page() {
             bars={costBars}
           />
           <MetricCard
-            title="Burn rate"
+            title="使用量/分"
             subLabel="現在"
             value={Math.round(view.burnRate ?? 0).toLocaleString()}
             unit="tk/min"
