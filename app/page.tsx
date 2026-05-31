@@ -7,6 +7,8 @@ import CircularGauge from "@/components/CircularGauge";
 import MetricCard from "@/components/MetricCard";
 import WeeklyView, { type WeekDay } from "@/components/WeeklyView";
 import PlanToggle from "@/components/PlanToggle";
+import HeatmapChart from "@/components/HeatmapChart";
+import ModelBreakdownCard from "@/components/ModelBreakdown";
 import { PLAN_FACTOR, PLAN_LABEL, PLAN_STORAGE_KEY, isPlan, type Plan } from "@/lib/plan";
 import type { BlocksResponse, DailyResponse } from "@/lib/types";
 
@@ -110,6 +112,28 @@ export default function Page() {
 
   const todayTokens = todayEntry?.totalTokens ?? 0;
   const todayCostUSD = todayEntry?.totalCost ?? 0;
+
+  // 過去7日のモデル別使用量を集計
+  const weeklyModelBreakdowns = useMemo(() => {
+    const last7 = sortedDaily.slice(-7);
+    const map = new Map<string, { tokens: number; cost: number }>();
+    for (const day of last7) {
+      for (const m of day.modelBreakdowns ?? []) {
+        const tokens = m.inputTokens + m.outputTokens + (m.cacheReadTokens ?? 0);
+        const prev = map.get(m.modelName) ?? { tokens: 0, cost: 0 };
+        map.set(m.modelName, { tokens: prev.tokens + tokens, cost: prev.cost + m.cost });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([modelName, { tokens, cost }]) => ({
+        modelName,
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: tokens,
+        cost,
+      }))
+      .sort((a, b) => (b.cacheReadTokens ?? 0) - (a.cacheReadTokens ?? 0));
+  }, [sortedDaily]);
   const todayCostJPY = Math.round(todayCostUSD * JPY_RATE);
 
   const tokenBars = {
@@ -120,6 +144,36 @@ export default function Page() {
     values: last14.map((d) => d.totalCost),
     labels: last14.map((d) => (d.period ?? "").slice(5)),
   };
+
+  // ヒートマップ: 過去28日のブロックを曜日×時間帯に集計
+  // grid[dayOfWeek][hour] dayOfWeek: 0=月 ... 6=日
+  const heatmapGrid = useMemo(() => {
+    const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+    const cutoff = Date.now() - 28 * 24 * 60 * 60 * 1000;
+    const list = blocks.data?.blocks ?? [];
+    for (const block of list) {
+      if (block.isGap || block.totalTokens === 0) continue;
+      const start = new Date(block.startTime);
+      const end = new Date(block.actualEndTime ?? block.endTime);
+      if (start.getTime() < cutoff) continue;
+      // ブロック内の各時間を列挙
+      const activeHours: { dow: number; hour: number }[] = [];
+      const cur = new Date(start);
+      cur.setMinutes(0, 0, 0);
+      while (cur < end) {
+        const dow = (cur.getDay() + 6) % 7; // 0=月, 6=日
+        activeHours.push({ dow, hour: cur.getHours() });
+        cur.setHours(cur.getHours() + 1);
+      }
+      if (activeHours.length > 0) {
+        const tph = block.totalTokens / activeHours.length;
+        for (const { dow, hour } of activeHours) {
+          grid[dow][hour] += tph;
+        }
+      }
+    }
+    return grid;
+  }, [blocks.data]);
 
   // 過去7日（カレンダー基準、データ無い日は0）
   const dayJp = ["日", "月", "火", "水", "木", "金", "土"];
@@ -223,6 +277,12 @@ export default function Page() {
             color="#30d158"
           />
         </div>
+
+        {/* モデル別使用量 */}
+        <ModelBreakdownCard breakdowns={weeklyModelBreakdowns} />
+
+        {/* アクティブな時間 ヒートマップ */}
+        <HeatmapChart grid={heatmapGrid} />
 
         {/* 過去1週間 */}
         <WeeklyView week={week} />

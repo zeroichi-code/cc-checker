@@ -1,3 +1,12 @@
+export type ModelBreakdown = {
+  modelName: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  cost: number;
+};
+
 export type CcusageBlock = {
   id: string;
   startTime: string;
@@ -46,7 +55,7 @@ export type DailyEntry = {
   totalTokens: number;
   totalCost: number;
   modelsUsed?: string[];
-  modelBreakdowns?: unknown[];
+  modelBreakdowns?: ModelBreakdown[];
 };
 
 export type DailyResponse = {
